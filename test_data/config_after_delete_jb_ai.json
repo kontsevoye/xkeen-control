@@ -1,0 +1,62 @@
+{
+  "routing": {
+    "rules": [
+      {
+        "inboundTag": [
+          "redirect",
+          "tproxy"
+        ],
+        "outboundTag": "block",
+        "type": "field",
+        "network": "udp",
+        "port": "135, 137, 138, 139"
+      },
+      {
+        "inboundTag": [
+          "redirect",
+          "tproxy"
+        ],
+        "outboundTag": "block",
+        "type": "field",
+        "domain": [
+          "appcenter.ms"
+        ]
+      },
+      {
+        "inboundTag": [
+          "redirect",
+          "tproxy"
+        ],
+        "outboundTag": "vless-reality",
+        "type": "field",
+        "ip": [
+          "ext:geoip_v2fly.dat:cloudflare"
+        ]
+      },
+      {
+        "inboundTag": [
+          "redirect",
+          "tproxy"
+        ],
+        "outboundTag": "vless-reality",
+        "type": "field",
+        "domain": [
+          "ext:geosite_v2fly.dat:slack",
+          "ext:geosite_v2fly.dat:zoom",
+          "ext:geosite_v2fly.dat:github",
+          "ext:geosite_v2fly.dat:docker",
+          "ext:geosite_v2fly.dat:jetbrains",
+          "ext:geosite_v2fly.dat:category-container"
+        ]
+      },
+      {
+        "inboundTag": [
+          "redirect",
+          "tproxy"
+        ],
+        "outboundTag": "direct",
+        "type": "field"
+      }
+    ]
+  }
+}

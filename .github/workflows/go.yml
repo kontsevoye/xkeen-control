@@ -1,0 +1,41 @@
+name: Go build
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+    - name: Test
+      run: go test -v ./...
+    - name: Build arm64
+      run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o xkeen-control-linux-arm64 -trimpath -buildvcs=false
+    - name: Build mips
+      run: GOOS=linux GOARCH=mips CGO_ENABLED=0 go build -o xkeen-control-linux-mips -trimpath -buildvcs=false
+    - uses: actions/upload-artifact@v4
+      with:
+        name: xkeen-control-linux-arm64
+        path: xkeen-control-linux-arm64
+    - uses: actions/upload-artifact@v4
+      with:
+        name: xkeen-control-linux-mips
+        path: xkeen-control-linux-mips
+    - name: Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          xkeen-control-linux-arm64
+          xkeen-control-linux-mips
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
