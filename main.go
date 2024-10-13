@@ -89,6 +89,35 @@ func customTgLogger(logger *zap.Logger) telebot.MiddlewareFunc {
 	}
 }
 
+func escapeTgMarkdownSpecialCharacters(input string) string {
+	specialCharacters := []string{
+		"_",
+		"*",
+		"[",
+		"]",
+		"(",
+		")",
+		"~",
+		"`",
+		">",
+		"#",
+		"+",
+		"-",
+		"=",
+		"|",
+		"{",
+		"}",
+		".",
+		"!",
+	}
+	for _, specialCharacter := range specialCharacters {
+		input = strings.ReplaceAll(input, specialCharacter, fmt.Sprintf("\\%s", specialCharacter))
+	}
+	fmt.Println(input)
+
+	return input
+}
+
 func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
@@ -113,8 +142,14 @@ func main() {
 		if len(domains) == 0 {
 			return c.Send("Список доменов пуст.")
 		}
+		for i, domain := range domains {
+			domains[i] = fmt.Sprintf("`%s`", escapeTgMarkdownSpecialCharacters(domain))
+		}
 
-		return c.Send(fmt.Sprintf("Текущий список доменов:\n- %s", strings.Join(domains, "\n- ")))
+		return c.Send(
+			fmt.Sprintf("*Текущий список доменов:*\n\\- %s", strings.Join(domains, "\n\\- ")),
+			telebot.ModeMarkdownV2,
+		)
 	})
 
 	bot.Handle("/add", func(c telebot.Context) error {
@@ -181,13 +216,13 @@ func main() {
 	})
 
 	bot.Handle("/help", func(c telebot.Context) error {
-		return c.Send(`
-- Plain string: If this string matches any part of the target domain, the rule takes effect. For example, "sina.com" can match "sina.com", "sina.com.cn", and "www.sina.com", but not "sina.cn".
-- Regular expression: Starts with "regexp:" followed by a regular expression. When this regular expression matches the target domain, the rule takes effect. For example, "regexp:\\.goo.*\\.com$" matches "www.google.com" or "fonts.googleapis.com", but not "google.com".
-- Subdomain (recommended): Starts with "domain:" followed by a domain. When this domain is the target domain or a subdomain of the target domain, the rule takes effect. For example, "domain:xray.com" matches "www.xray.com" and "xray.com", but not "wxray.com".
-- Exact match: Starts with "full:" followed by a domain. When this domain is an exact match for the target domain, the rule takes effect. For example, "full:xray.com" matches "xray.com" but not "www.xray.com".
-- Load domains from a file: Formatted as "ext:file:tag", where the file is stored in the resource directory and has the same format as geosite.dat. The tag must exist in the file.
-`)
+		return c.Send(strings.ReplaceAll(strings.ReplaceAll(`
+>\- Plain string: If this string matches any part of the target domain, the rule takes effect\. For example, "==sina\.com==" can match "==sina\.com==", "==sina\.com\.cn==", and "==www\.sina\.com==", but not "==sina\.cn=="\.
+>\- Regular expression: Starts with "==regexp:==" followed by a regular expression\. When this regular expression matches the target domain, the rule takes effect\. For example, "==regexp:\\\\\.goo\.\*\\\\\.com$==" matches "==www\.google\.com==" or "==fonts\.googleapis\.com==", but not "==google\.com=="\.
+>\- Subdomain \(recommended\): Starts with "==domain:==" followed by a domain\. When this domain is the target domain or a subdomain of the target domain, the rule takes effect\. For example, "==domain:xray\.com==" matches "==www\.xray\.com==" and "==xray\.com==", but not "==wxray\.com=="\.
+>\- Exact match: Starts with "==full:==" followed by a domain\. When this domain is an exact match for the target domain, the rule takes effect\. For example, "==full:xray\.com==" matches "==xray\.com==" but not "==www\.xray\.com=="\.
+>\- Load domains from a file: Formatted as "==ext:file:tag==", where the file is stored in the resource directory and has the same format as ==geosite\.dat==\. The tag must exist in the file\.
+`, "\n", "\n>\n"), "==", "`"), telebot.ModeMarkdownV2)
 	})
 
 	dynamicHandler := func(inputText string) (string, *telebot.ReplyMarkup) {
