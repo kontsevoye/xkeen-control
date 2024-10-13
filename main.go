@@ -69,93 +69,76 @@ func main() {
 	bot.Handle("/list", func(c telebot.Context) error {
 		domains, err := confighandler.GetDomains(appConfig.ConfigFilePath)
 		if err != nil {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Ошибка чтения доменов: %v", err))
-			return nil
+			return c.Send(fmt.Sprintf("Ошибка чтения доменов: %v", err))
 		}
 		if len(domains) == 0 {
-			c.Bot().Send(c.Message().Sender, "Список доменов пуст.")
-		} else {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Текущий список доменов:\n- %s", strings.Join(domains, "\n- ")))
+			return c.Send("Список доменов пуст.")
 		}
 
-		return nil
+		return c.Send(fmt.Sprintf("Текущий список доменов:\n- %s", strings.Join(domains, "\n- ")))
 	})
 
 	bot.Handle("/add", func(c telebot.Context) error {
 		domain := c.Message().Payload
 		if domain == "" {
-			c.Bot().Send(c.Message().Sender, "Пожалуйста, укажите домен для добавления.")
-			return nil
+			return c.Send("Пожалуйста, укажите домен для добавления.")
 		}
 
 		err = confighandler.AddDomain(appConfig.ConfigFilePath, domain)
 		if err != nil {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Ошибка сохранения домена: %v", err))
-			return nil
+			return c.Send(fmt.Sprintf("Ошибка сохранения домена: %v", err))
 		}
-		c.Bot().Send(c.Message().Sender, "Домен успешно добавлен.")
 
-		return nil
+		return c.Send("Домен успешно добавлен.")
 	})
 
 	bot.Handle("/delete", func(c telebot.Context) error {
 		domain := c.Message().Payload
 		if domain == "" {
-			c.Bot().Send(c.Message().Sender, "Пожалуйста, укажите домен для удаления.")
-			return nil
+			return c.Send("Пожалуйста, укажите домен для удаления.")
 		}
 
 		err = confighandler.DeleteDomain(appConfig.ConfigFilePath, domain)
 		if err != nil {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Ошибка удаления домена: %v", err))
-			return nil
+			return c.Send(fmt.Sprintf("Ошибка удаления домена: %v", err))
 		}
-		c.Bot().Send(c.Message().Sender, "Домен успешно удален.")
 
-		return nil
+		return c.Send("Домен успешно удален.")
 	})
 
 	bot.Handle("/restart", func(c telebot.Context) error {
 		err = xkeenipc.Restart()
 		if err != nil {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Ошибка перезапуска xkeen: %v", err))
-			return nil
+			return c.Send(fmt.Sprintf("Ошибка перезапуска xkeen: %v", err))
 		}
-		c.Bot().Send(c.Message().Sender, "xkeen успешно перезапущен.")
 
-		return nil
+		return c.Send("xkeen успешно перезапущен.")
 	})
 
 	bot.Handle("/backups", func(c telebot.Context) error {
 		backupFiles, err := confighandler.ListBackupFiles(appConfig.ConfigFilePath)
 		if err != nil {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Ошибка получения списка бэкапов: %v", err))
-			return nil
+			return c.Send(fmt.Sprintf("Ошибка получения списка бэкапов: %v", err))
 		}
 		if len(backupFiles) == 0 {
-			c.Bot().Send(c.Message().Sender, "Список бэкапов пуст.")
-		} else {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Текущий список бэкапов:\n- %s", strings.Join(backupFiles, "\n- ")))
+			return c.Send("Список бэкапов пуст.")
 		}
 
-		return nil
+		return c.Send(fmt.Sprintf("Текущий список бэкапов:\n- %s", strings.Join(backupFiles, "\n- ")))
 	})
 
 	bot.Handle("/restore", func(c telebot.Context) error {
 		backupFileName := c.Message().Payload
 		if backupFileName == "" {
-			c.Bot().Send(c.Message().Sender, "Пожалуйста, укажите файл для восстановления.")
-			return nil
+			return c.Send("Пожалуйста, укажите файл для восстановления.")
 		}
 
 		err = confighandler.RestoreBackup(appConfig.ConfigFilePath, backupFileName)
 		if err != nil {
-			c.Bot().Send(c.Message().Sender, fmt.Sprintf("Ошибка восстановления из бэкапа: %v", err))
-			return nil
+			return c.Send(fmt.Sprintf("Ошибка восстановления из бэкапа: %v", err))
 		}
-		c.Bot().Send(c.Message().Sender, "Бэкап успешно восстановлен.")
 
-		return nil
+		return c.Send("Бэкап успешно восстановлен.")
 	})
 
 	bot.Handle("/help", func(c telebot.Context) error {
