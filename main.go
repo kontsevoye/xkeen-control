@@ -181,6 +181,10 @@ func main() {
 	})
 
 	bot.Handle("/restart", func(c telebot.Context) error {
+		err = c.Send("начинаю перезапуск")
+		if err != nil {
+			return err
+		}
 		err = xkeenipc.Restart()
 		if err != nil {
 			return c.Send(fmt.Sprintf("Ошибка перезапуска xkeen: %v", err))
@@ -320,35 +324,115 @@ func main() {
 		if action == add {
 			err = confighandler.AddDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
-				return c.Send(fmt.Sprintf("Ошибка сохранения домена: %v", err))
+				_, err = c.Bot().Edit(
+					c.Message(),
+					fmt.Sprintf(
+						"⚠️ Ошибка сохранения \"`%s`\": %s",
+						escapeTgMarkdownSpecialCharacters(actionPayload),
+						escapeTgMarkdownSpecialCharacters(err.Error()),
+					),
+					telebot.ModeMarkdownV2,
+				)
+				return err
 			}
-			_, err = c.Bot().Edit(c.Message(), fmt.Sprintf("✅ %s", actionPayload))
+			_, err = c.Bot().Edit(
+				c.Message(),
+				fmt.Sprintf("✅ `%s`", escapeTgMarkdownSpecialCharacters(actionPayload)),
+				telebot.ModeMarkdownV2,
+			)
 		} else if action == remove {
 			err = confighandler.DeleteDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
-				return c.Send(fmt.Sprintf("Ошибка удаления домена: %v", err))
+				_, err = c.Bot().Edit(
+					c.Message(),
+					fmt.Sprintf(
+						"⚠️ Ошибка удаления \"`%s`\": %s",
+						escapeTgMarkdownSpecialCharacters(actionPayload),
+						escapeTgMarkdownSpecialCharacters(err.Error()),
+					),
+					telebot.ModeMarkdownV2,
+				)
+				return err
 			}
-			_, err = c.Bot().Edit(c.Message(), fmt.Sprintf("⛔️ %s", actionPayload))
+			_, err = c.Bot().Edit(
+				c.Message(),
+				fmt.Sprintf("⛔️ `%s`", escapeTgMarkdownSpecialCharacters(actionPayload)),
+				telebot.ModeMarkdownV2,
+			)
 		} else if action == addReload {
 			err = confighandler.AddDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
-				return c.Send(fmt.Sprintf("Ошибка сохранения домена: %v", err))
+				_, err = c.Bot().Edit(
+					c.Message(),
+					fmt.Sprintf(
+						"⚠️ Ошибка сохранения \"`%s`\": %s",
+						escapeTgMarkdownSpecialCharacters(actionPayload),
+						escapeTgMarkdownSpecialCharacters(err.Error()),
+					),
+					telebot.ModeMarkdownV2,
+				)
+				return err
 			}
+			_, err = c.Bot().Edit(
+				c.Message(),
+				fmt.Sprintf("✅ `%s`\n🔄 Перезапускаю xkeen...", escapeTgMarkdownSpecialCharacters(actionPayload)),
+				telebot.ModeMarkdownV2,
+			)
 			err = xkeenipc.Restart()
 			if err != nil {
-				return c.Send(fmt.Sprintf("Ошибка перезапуска xkeen: %v", err))
+				_, err = c.Bot().Edit(
+					c.Message(),
+					fmt.Sprintf(
+						"⚠️ Ошибка перезапуска xkeen \"`%s`\": %s\n✅ Но в список добавлен😬",
+						escapeTgMarkdownSpecialCharacters(actionPayload),
+						escapeTgMarkdownSpecialCharacters(err.Error()),
+					),
+					telebot.ModeMarkdownV2,
+				)
+				return err
 			}
-			_, err = c.Bot().Edit(c.Message(), fmt.Sprintf("✅🔄 %s", actionPayload))
+			_, err = c.Bot().Edit(
+				c.Message(),
+				fmt.Sprintf("✅🔄 `%s`", escapeTgMarkdownSpecialCharacters(actionPayload)),
+				telebot.ModeMarkdownV2,
+			)
 		} else if action == removeReload {
 			err = confighandler.DeleteDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
-				return c.Send(fmt.Sprintf("Ошибка удаления домена: %v", err))
+				_, err = c.Bot().Edit(
+					c.Message(),
+					fmt.Sprintf(
+						"⚠️ Ошибка удаления \"`%s`\": %s",
+						escapeTgMarkdownSpecialCharacters(actionPayload),
+						escapeTgMarkdownSpecialCharacters(err.Error()),
+					),
+					telebot.ModeMarkdownV2,
+				)
+				return err
 			}
+			_, err = c.Bot().Edit(
+				c.Message(),
+				fmt.Sprintf("⛔ `%s`\n🔄 Перезапускаю xkeen...", escapeTgMarkdownSpecialCharacters(actionPayload)),
+				telebot.ModeMarkdownV2,
+			)
 			err = xkeenipc.Restart()
 			if err != nil {
-				return c.Send(fmt.Sprintf("Ошибка перезапуска xkeen: %v", err))
+				_, err = c.Bot().Edit(
+					c.Message(),
+					fmt.Sprintf(
+						"⚠️ Ошибка перезапуска xkeen \"`%s`\": %s\n⛔ Но из списка удален😬",
+						escapeTgMarkdownSpecialCharacters(actionPayload),
+						escapeTgMarkdownSpecialCharacters(err.Error()),
+					),
+					telebot.ModeMarkdownV2,
+				)
+				return err
 			}
-			_, err = c.Bot().Edit(c.Message(), fmt.Sprintf("⛔🔄 %s", actionPayload))
+			_, err = c.Bot().Edit(
+				c.Message(),
+				fmt.Sprintf("⛔🔄 `%s`", escapeTgMarkdownSpecialCharacters(actionPayload)),
+				telebot.ModeMarkdownV2,
+			)
 		} else if action == domainPrefix ||
 			action == exactPrefix ||
 			action == regexpPrefix ||
