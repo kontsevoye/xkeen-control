@@ -24,17 +24,18 @@ type appConfig struct {
 
 type inlineAction string
 
+// TODO: Callback data has a 64 byte limit, solve this in a more correct way
 const (
 	add                  inlineAction = "add"
-	remove               inlineAction = "remove"
-	addReload            inlineAction = "addReload"
-	removeReload         inlineAction = "removeReload"
-	domainPrefix         inlineAction = "domainPrefix"
-	exactPrefix          inlineAction = "exactPrefix"
-	regexpPrefix         inlineAction = "regexpPrefix"
-	withoutPrefix        inlineAction = "withoutPrefix"
-	v2flyCommunityPrefix inlineAction = "v2flyCommunityPrefix"
-	cutSubdomain         inlineAction = "cutSubdomain"
+	remove               inlineAction = "rm"
+	addReload            inlineAction = "addRl"
+	removeReload         inlineAction = "rmRl"
+	domainPrefix         inlineAction = "dp"
+	exactPrefix          inlineAction = "ep"
+	regexpPrefix         inlineAction = "rp"
+	withoutPrefix        inlineAction = "wp"
+	v2flyCommunityPrefix inlineAction = "cp"
+	cutSubdomain         inlineAction = "cs"
 )
 
 func newAppConfig(logger *zap.Logger) *appConfig {
