@@ -314,19 +314,17 @@ func main() {
 
 		inlineButtonRows = append(
 			inlineButtonRows,
-			reply.Row(reply.Data("✅ Добавить", "", string(add), newMessageText)),
+			reply.Row(
+				reply.Data("✅ Добавить", "", string(add), newMessageText),
+				reply.Data("✅🔄 с перезапуском", "", string(addReload), newMessageText),
+			),
 		)
 		inlineButtonRows = append(
 			inlineButtonRows,
-			reply.Row(reply.Data("✅🔄 Добавить с перезапуском", "", string(addReload), newMessageText)),
-		)
-		inlineButtonRows = append(
-			inlineButtonRows,
-			reply.Row(reply.Data("⛔️ Удалить", "", string(remove), newMessageText)),
-		)
-		inlineButtonRows = append(
-			inlineButtonRows,
-			reply.Row(reply.Data("⛔️🔄 Удалить с перезапуском", "", string(removeReload), newMessageText)),
+			reply.Row(
+				reply.Data("⛔️ Удалить", "", string(remove), newMessageText),
+				reply.Data("⛔️🔄 с перезапуском", "", string(removeReload), newMessageText),
+			),
 		)
 		reply.Inline(inlineButtonRows...)
 
