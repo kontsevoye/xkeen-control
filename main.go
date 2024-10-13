@@ -34,6 +34,7 @@ const (
 	regexpPrefix         inlineAction = "regexpPrefix"
 	withoutPrefix        inlineAction = "withoutPrefix"
 	v2flyCommunityPrefix inlineAction = "v2flyCommunityPrefix"
+	cutSubdomain         inlineAction = "cutSubdomain"
 )
 
 func newAppConfig(logger *zap.Logger) *appConfig {
@@ -261,6 +262,20 @@ func main() {
 				reply.Row(reply.Data(prefixLessNewMessageText, "", string(withoutPrefix), prefixLessNewMessageText)),
 			)
 		}
+		if !strings.HasPrefix(newMessageText, "domain:") &&
+			!strings.HasPrefix(newMessageText, "full:") &&
+			!strings.HasPrefix(newMessageText, "regexp:") &&
+			!strings.HasPrefix(newMessageText, "ext:geosite_v2fly.dat:") {
+			subdomains := strings.Split(prefixLessNewMessageText, ".")
+			if len(subdomains) > 2 {
+				parent := strings.Join(subdomains[1:], ".")
+				logger.Info(parent)
+				inlineButtonRows = append(
+					inlineButtonRows,
+					reply.Row(reply.Data(parent, "", string(cutSubdomain), parent)),
+				)
+			}
+		}
 		if !strings.HasPrefix(newMessageText, "domain:") {
 			inlineButtonRows = append(
 				inlineButtonRows,
@@ -304,13 +319,17 @@ func main() {
 		)
 		reply.Inline(inlineButtonRows...)
 
-		return newMessageText, reply
+		return fmt.Sprintf("`%s`", escapeTgMarkdownSpecialCharacters(newMessageText)), reply
 	}
 
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
 		newMessageText, reply := dynamicHandler(c.Message().Text)
 
-		return c.Send(newMessageText, reply)
+		return c.Send(
+			newMessageText,
+			reply,
+			telebot.ModeMarkdownV2,
+		)
 	})
 
 	bot.Handle(telebot.OnCallback, func(c telebot.Context) error {
@@ -437,9 +456,10 @@ func main() {
 			action == exactPrefix ||
 			action == regexpPrefix ||
 			action == withoutPrefix ||
-			action == v2flyCommunityPrefix {
+			action == v2flyCommunityPrefix ||
+			action == cutSubdomain {
 			newMessageText, reply := dynamicHandler(actionPayload)
-			_, err = c.Bot().Edit(c.Message(), newMessageText, reply)
+			_, err = c.Bot().Edit(c.Message(), newMessageText, reply, telebot.ModeMarkdownV2)
 		} else {
 			return c.Send(fmt.Sprintf("Неизвестный экшон: %s (%s)", action, actionPayload))
 		}
