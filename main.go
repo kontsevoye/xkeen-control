@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"github.com/kontsevoye/xkeen-control/confighandler"
 	"github.com/kontsevoye/xkeen-control/xkeenipc"
+	"go.uber.org/zap"
 	"gopkg.in/telebot.v3"
 	telebotMiddleware "gopkg.in/telebot.v3/middleware"
-	"log"
 	"net/url"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -33,14 +36,19 @@ const (
 	v2flyCommunityPrefix inlineAction = "v2flyCommunityPrefix"
 )
 
-func newAppConfig() *appConfig {
+func newAppConfig(logger *zap.Logger) *appConfig {
 	configFilePath := flag.String("config", "", "Путь к файлу конфигурации")
 	telegramBotToken := flag.String("token", "", "Токен Telegram бота")
 	telegramAdminId := flag.Int64("admin", 0, "Telegram ID админа")
 
 	flag.Parse()
 	if *configFilePath == "" || *telegramBotToken == "" || *telegramAdminId == 0 {
-		log.Fatal("Пожалуйста, укажите путь к файлу конфигурации с помощью -config, токен бота с помощью -token, ID админа с помощью -admin")
+		logger.Fatal(
+			"missing required options config/token/admin",
+			zap.String("configFilePath", *configFilePath),
+			zap.String("telegramBotToken", *telegramBotToken),
+			zap.Int64("telegramAdminId", *telegramAdminId),
+		)
 	}
 
 	appConfig := &appConfig{
@@ -52,18 +60,49 @@ func newAppConfig() *appConfig {
 	return appConfig
 }
 
+func customTgLogger(logger *zap.Logger) telebot.MiddlewareFunc {
+	return func(next telebot.HandlerFunc) telebot.HandlerFunc {
+		return func(c telebot.Context) error {
+			fields := []zap.Field{
+				zap.Int("update_id", c.Update().ID),
+				zap.String("recipient", c.Recipient().Recipient()),
+				zap.String("text", c.Text()),
+				zap.String("data", c.Data()),
+			}
+			if c.Message() != nil {
+				fields = append(fields, zap.Int("message_id", c.Message().ID))
+				fields = append(fields, zap.Int64("sender_id", c.Message().Sender.ID))
+			}
+			if c.Callback() != nil {
+				fields = append(fields, zap.String("callback_id", c.Callback().ID))
+			}
+			logger.Info("tg update", fields...)
+			defer logger.Sync()
+			err := next(c)
+			if err != nil {
+				fields = append(fields, zap.Error(err))
+				logger.Error("handle error", fields...)
+			}
+
+			return err
+		}
+	}
+}
+
 func main() {
-	appConfig := newAppConfig()
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	appConfig := newAppConfig(logger)
 
 	bot, err := telebot.NewBot(telebot.Settings{
 		Token:  appConfig.TelegramBotToken,
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
-		log.Fatal("Ошибка создания бота:", err)
+		logger.Fatal("cant create telegram bot", zap.Error(err))
 	}
 
-	bot.Use(telebotMiddleware.Logger())
+	bot.Use(customTgLogger(logger))
 	bot.Use(telebotMiddleware.Whitelist(appConfig.TelegramAdminId))
 
 	bot.Handle("/list", func(c telebot.Context) error {
@@ -159,7 +198,7 @@ func main() {
 		if strings.HasPrefix(newMessageText, "http://") || strings.HasPrefix(newMessageText, "https://") {
 			parsedUrl, err := url.Parse(newMessageText)
 			if err != nil || parsedUrl.Host == "" {
-				fmt.Printf("Хуйню суешь вместо хоста %s\n", newMessageText)
+				logger.Warn("zalupa instead of host", zap.String("newMessageText", newMessageText))
 			} else {
 				newMessageText = parsedUrl.Host
 				hostSlice := strings.Split(newMessageText, ":")
@@ -289,6 +328,19 @@ func main() {
 		return err
 	})
 
-	log.Println("Бот готов к запуску")
-	bot.Start()
+	go bot.Start()
+	logger.Info("ready", zap.Int("pid", os.Getpid()))
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(
+		signalChan,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+		syscall.SIGKILL,
+	)
+	s := <-signalChan
+	bot.Stop()
+	logger.Info("signal received, shutting down", zap.String("signal", s.String()))
 }
