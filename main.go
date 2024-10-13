@@ -78,7 +78,12 @@ func customTgLogger(logger *zap.Logger) telebot.MiddlewareFunc {
 				fields = append(fields, zap.String("callback_id", c.Callback().ID))
 			}
 			logger.Info("tg update", fields...)
-			defer logger.Sync()
+			defer func() {
+				err := logger.Sync()
+				if err != nil && !strings.Contains(err.Error(), "inappropriate ioctl for device") {
+					fmt.Println(err)
+				}
+			}()
 			err := next(c)
 			if err != nil {
 				fields = append(fields, zap.Error(err))
@@ -121,7 +126,12 @@ func escapeTgMarkdownSpecialCharacters(input string) string {
 
 func main() {
 	logger, _ := zap.NewProduction()
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil && !strings.Contains(err.Error(), "inappropriate ioctl for device") {
+			panic(err)
+		}
+	}()
 	appConfig := newAppConfig(logger)
 
 	bot, err := telebot.NewBot(telebot.Settings{
