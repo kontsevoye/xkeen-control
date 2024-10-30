@@ -2,7 +2,7 @@
 # /opt/etc/init.d/S52xkeencontrol
 ### Начало информации о службе
 # Краткое описание: Запуск / Остановка xkeen-control
-# version="0.1"  # Версия скрипта
+# version="0.2"  # Версия скрипта
 ### Конец информации о службе
 
 # coreutils-nohup required (opkg install coreutils-nohup)
@@ -10,6 +10,9 @@
 # EDIT ME
 telegram_bot_token=""
 telegram_admin_id=""
+enable_backups="true"
+config_location="/opt/etc/xray/configs/05_routing.json"
+log_location="/opt/tmp/xkeen-control.log"
 
 green="\033[32m"
 red="\033[31m"
@@ -32,7 +35,7 @@ start() {
     if xkeen_control_status; then
         echo -e "  xkeen-control ${yellow}уже запущен${reset}"
     else
-        nohup $xkeen_control_initd -config /opt/etc/xray/configs/05_routing.json -token $telegram_bot_token -admin $telegram_admin_id >/opt/tmp/xkeen-control.log 2>&1 &
+        nohup $xkeen_control_initd -config="$config_location" -token="$telegram_bot_token" -admin="$telegram_admin_id" -enableBackups="$enable_backups" >>$log_location 2>&1 &
         echo -e "  xkeen-control ${green}запущен${reset}"
     fi
 }
