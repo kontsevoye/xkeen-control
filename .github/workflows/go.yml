@@ -19,23 +19,51 @@ jobs:
     - name: Test
       run: go test -v ./...
     - name: Build arm64
-      run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o xkeen-control-linux-arm64 -trimpath -buildvcs=false cmd/xkeen-control/xkeen-control.go
+      run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o xkeen-control-linux-arm64 -trimpath -ldflags="-s -w" -buildvcs=false cmd/xkeen-control/xkeen-control.go
+    - name: Build arm
+      run: GOOS=linux GOARCH=arm CGO_ENABLED=0 go build -o xkeen-control-linux-arm -trimpath -ldflags="-s -w" -buildvcs=false cmd/xkeen-control/xkeen-control.go
     - name: Build mips
-      run: GOOS=linux GOARCH=mips CGO_ENABLED=0 go build -o xkeen-control-linux-mips -trimpath -buildvcs=false cmd/xkeen-control/xkeen-control.go
+      run: GOOS=linux GOARCH=mips CGO_ENABLED=0 go build -o xkeen-control-linux-mips -trimpath -ldflags="-s -w" -buildvcs=false cmd/xkeen-control/xkeen-control.go
+    - name: Build mips64
+      run: GOOS=linux GOARCH=mips64 CGO_ENABLED=0 go build -o xkeen-control-linux-mips64 -trimpath -ldflags="-s -w" -buildvcs=false cmd/xkeen-control/xkeen-control.go
+    - name: Build mipsle
+      run: GOOS=linux GOARCH=mipsle CGO_ENABLED=0 go build -o xkeen-control-linux-mipsle -trimpath -ldflags="-s -w" -buildvcs=false cmd/xkeen-control/xkeen-control.go
+    - name: Build mips64le
+      run: GOOS=linux GOARCH=mips64le CGO_ENABLED=0 go build -o xkeen-control-linux-mips64le -trimpath -ldflags="-s -w" -buildvcs=false cmd/xkeen-control/xkeen-control.go
     - uses: actions/upload-artifact@v4
       with:
         name: xkeen-control-linux-arm64
         path: xkeen-control-linux-arm64
     - uses: actions/upload-artifact@v4
       with:
+        name: xkeen-control-linux-arm
+        path: xkeen-control-linux-arm
+    - uses: actions/upload-artifact@v4
+      with:
         name: xkeen-control-linux-mips
         path: xkeen-control-linux-mips
+    - uses: actions/upload-artifact@v4
+      with:
+        name: xkeen-control-linux-mips64
+        path: xkeen-control-linux-mips64
+    - uses: actions/upload-artifact@v4
+      with:
+        name: xkeen-control-linux-mipsle
+        path: xkeen-control-linux-mipsle
+    - uses: actions/upload-artifact@v4
+      with:
+        name: xkeen-control-linux-mips64le
+        path: xkeen-control-linux-mips64le
     - name: Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         files: |
           xkeen-control-linux-arm64
+          xkeen-control-linux-arm
           xkeen-control-linux-mips
+          xkeen-control-linux-mips64
+          xkeen-control-linux-mipsle
+          xkeen-control-linux-mips64le
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
