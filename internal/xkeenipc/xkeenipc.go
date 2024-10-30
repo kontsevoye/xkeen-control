@@ -2,14 +2,18 @@ package xkeenipc
 
 import "github.com/kontsevoye/xkeen-control/internal/executor"
 
-func New(e executor.Executor) *XkeenIpc {
-	return &XkeenIpc{e}
+func New(e executor.Executor, binaryName string) *XkeenIpc {
+	if binaryName == "" {
+		binaryName = "xkeen"
+	}
+	return &XkeenIpc{e, binaryName}
 }
 
 type XkeenIpc struct {
-	e executor.Executor
+	e          executor.Executor
+	binaryName string
 }
 
 func (i *XkeenIpc) Restart() error {
-	return i.e.RunCommand("xkeen", "-restart")
+	return i.e.RunCommand(i.binaryName, "-restart")
 }

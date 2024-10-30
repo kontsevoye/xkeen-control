@@ -18,13 +18,15 @@ type appConfig struct {
 	TelegramBotToken string
 	TelegramAdminId  int64
 	EnableBackups    bool
+	XkeenBinaryName  string
 }
 
 func newAppConfig(logger *zap.Logger) *appConfig {
 	configFilePath := flag.String("config", "", "Путь к файлу конфигурации")
 	telegramBotToken := flag.String("token", "", "Токен Telegram бота")
 	telegramAdminId := flag.Int64("admin", 0, "Telegram ID админа")
-	enableBackups := flag.Bool("enableBackups", true, "Включить бэкапы конфигов")
+	enableBackups := flag.Bool("enableBackups", true, "Включить бэкапы конфигов, опционально")
+	xkeenBinaryName := flag.String("xkeenBinaryName", "", "Имя пакета xkeen, опционально")
 
 	flag.Parse()
 	if *configFilePath == "" || *telegramBotToken == "" || *telegramAdminId == 0 {
@@ -41,6 +43,7 @@ func newAppConfig(logger *zap.Logger) *appConfig {
 		TelegramBotToken: *telegramBotToken,
 		TelegramAdminId:  *telegramAdminId,
 		EnableBackups:    *enableBackups,
+		XkeenBinaryName:  *xkeenBinaryName,
 	}
 
 	return conf
@@ -61,7 +64,7 @@ func main() {
 		conf.TelegramAdminId,
 		logger,
 		confighandler.New(conf.ConfigFilePath, conf.EnableBackups),
-		xkeenipc.New(executor.NewExecExecutor()),
+		xkeenipc.New(executor.NewExecExecutor(), conf.XkeenBinaryName),
 	)
 	go tui.Start()
 

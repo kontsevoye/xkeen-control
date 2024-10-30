@@ -2,6 +2,8 @@
 
 Telegram UI для управления доменным роутингом xkeen. Можно добавлять/удалять маршруты через бота.
 
+[![Demo](docs/demo.png)](docs/demo.mp4)
+
 ## Автоматическая установка на роутер
 
 Запихиваем [файл установки](https://github.com/kontsevoye/xkeen-control/blob/master/scripts/install.sh) на роутер, делаем исполняемым, запускаем.
