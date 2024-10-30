@@ -19,9 +19,9 @@ jobs:
     - name: Test
       run: go test -v ./...
     - name: Build arm64
-      run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o xkeen-control-linux-arm64 -trimpath -buildvcs=false
+      run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o xkeen-control-linux-arm64 -trimpath -buildvcs=false cmd/xkeen-control/xkeen-control.go
     - name: Build mips
-      run: GOOS=linux GOARCH=mips CGO_ENABLED=0 go build -o xkeen-control-linux-mips -trimpath -buildvcs=false
+      run: GOOS=linux GOARCH=mips CGO_ENABLED=0 go build -o xkeen-control-linux-mips -trimpath -buildvcs=false cmd/xkeen-control/xkeen-control.go
     - uses: actions/upload-artifact@v4
       with:
         name: xkeen-control-linux-arm64
