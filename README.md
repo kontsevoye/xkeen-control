@@ -8,9 +8,9 @@ Telegram UI для управления доменным роутингом xkee
 
 Запихиваем [файл установки](https://github.com/kontsevoye/xkeen-control/blob/master/scripts/install.sh) на роутер, делаем исполняемым, запускаем.
 
-Например запустив такую команду на роутере:
+Например, запустив такую команду на роутере:
 ```shell
-curl https://github.com/kontsevoye/xkeen-control/blob/master/scripts/install.sh -o /opt/tmp/install.sh \
+curl https://raw.githubusercontent.com/kontsevoye/xkeen-control/refs/heads/master/scripts/install.sh -o /opt/tmp/install.sh \
   && chmod +x /opt/tmp/install.sh \
   && /opt/tmp/install.sh
 ```
@@ -20,22 +20,7 @@ curl https://github.com/kontsevoye/xkeen-control/blob/master/scripts/install.sh 
 opkg update && opkg install curl
 ```
 
-## Ручная установка на роутер
-
-- ставим вспомогательный пакет из opkg
-  - `opkg install coreutils-nohup`
-- берем бинарник нужной архитектуры из последнего релиза [xkeen-control/releases](https://github.com/kontsevoye/xkeen-control/releases) и кладем его в `/opt/sbin/xkeen-control`
-  - например `scp -P222 -O ~/Downloads/xkeen-control/xkeen-control-linux-arm64 root@192.168.69.1:/opt/sbin/xkeen-control`
-- берем заготовку init.d скрипта из последнего релиза, например [xkeen-control/v1.2.0/init/S52xkeencontrol.sh](https://github.com/kontsevoye/xkeen-control/blob/v1.2.0/init/S52xkeencontrol.sh) и кладем в `/opt/etc/init.d/S52xkeencontrol`
-  - например `scp -P222 -O ~/Downloads/xkeen-control/S52xkeencontrol.sh root@192.168.69.1:/opt/etc/init.d/S52xkeencontrol`
-- делаем наши файлы исполняемыми
-  - `chmod +x /opt/sbin/xkeen-control`
-  - `chmod +x /opt/etc/init.d/S52xkeencontrol`
-- заполняем параметры запуска в `/opt/etc/init.d/S52xkeencontrol` под строкой EDIT ME. `telegram_bot_token=""\ntelegram_admin_id=""` меняем на `telegram_bot_token="ТОКЕН_ТЕЛЕГРАМ_БОТА_СЮДА"\ntelegram_admin_id="СВОЙ_ТЕЛЕГРАМ_АЙДИ_СЮДА"`
-  - `ТОКЕН_ТЕЛЕГРАМ_БОТА_СЮДА` берем у [@BotFather](https://t.me/BotFather)
-  - `СВОЙ_ТЕЛЕГРАМ_АЙДИ_СЮДА` берем у [@userinfobot](https://t.me/@userinfobot)
-- запускаем софтину путем выполнения `/opt/etc/init.d/S52xkeencontrol start`
-- теперь если отправить своему боту `/list`, он должен ответить текущим списком доменов
+После выполнения всех действий можно отправить своему боту `/list`, он должен ответить текущим списком доменов.
 
 ## Конфигурация списка команд в боте
 
@@ -50,3 +35,15 @@ backups - Список бэкапов конфига
 restore - Восстановить конфига из бэкапа
 help - Помощь по префиксам xray
 ```
+
+## Обновление
+
+init.d укомплектован возможностью обновления. Нужно всего лишь запустить следующую команду и следовать инструкциям
+```shell
+/opt/etc/init.d/S52xkeencontrol update
+```
+
+## Шатауты
+- https://github.com/XTLS/Xray-core
+- https://github.com/Skrill0/XKeen
+- https://github.com/Corvus-Malus/XKeen
