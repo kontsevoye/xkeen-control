@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type config struct {
+type xrayRoutingConfig struct {
 	Routing struct {
 		Rules []rule `json:"rules"`
 	} `json:"routing"`
@@ -50,7 +50,7 @@ func standardizeJSON(input []byte) ([]byte, error) {
 	return ast.Pack(), nil
 }
 
-func loadConfig(filename string) (*config, error) {
+func loadConfig(filename string) (*xrayRoutingConfig, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func loadConfig(filename string) (*config, error) {
 	if err != nil {
 		return nil, err
 	}
-	var c config
+	var c xrayRoutingConfig
 	err = json.Unmarshal(standardizedData, &c)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func createBackupFile(filename string) error {
 	return nil
 }
 
-func saveConfig(filename string, config *config) error {
+func saveConfig(filename string, config *xrayRoutingConfig) error {
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err

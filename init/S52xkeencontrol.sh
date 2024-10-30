@@ -5,10 +5,16 @@
 # version="0.1"  # Версия скрипта
 ### Конец информации о службе
 
-green=""
-red=""
-yellow=""
-reset=""
+# coreutils-nohup required (opkg install coreutils-nohup)
+
+# EDIT ME
+telegram_bot_token=""
+telegram_admin_id=""
+
+green="\033[32m"
+red="\033[31m"
+yellow="\033[33m"
+reset="\033[0m"
 
 xkeen_control_initd="/opt/sbin/xkeen-control"
 
@@ -26,9 +32,7 @@ start() {
     if xkeen_control_status; then
         echo -e "  xkeen-control ${yellow}уже запущен${reset}"
     else
-	# EDIT ME
-	# coreutils-nohup required (opkg install coreutils-nohup)
-        nohup $xkeen_control_initd -config /opt/etc/xray/configs/05_routing.json -token t -admin 1 >/opt/tmp/xkeen-control.log 2>&1 &
+        nohup $xkeen_control_initd -config /opt/etc/xray/configs/05_routing.json -token $telegram_bot_token -admin $telegram_admin_id >/opt/tmp/xkeen-control.log 2>&1 &
         echo -e "  xkeen-control ${green}запущен${reset}"
     fi
 }
@@ -69,4 +73,3 @@ case "$1" in
 esac
 
 exit 0
-

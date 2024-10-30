@@ -1,9 +1,10 @@
 package confighandler
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -13,7 +14,7 @@ func createTmpFile() (*os.File, error) {
 		return nil, err
 	}
 
-	testConfigFile, err := os.ReadFile("../test_data/config.json")
+	testConfigFile, err := os.ReadFile("../../test/confighandler/config.json")
 	if err != nil {
 		return nil, err
 	}
@@ -159,14 +160,17 @@ func TestWriteDontBrokeConfig(t *testing.T) {
 		t.Fatalf("Ошибка чтения временного файла: %v", err)
 	}
 
-	expectedConfigFile, err := os.ReadFile("../test_data/config_after_delete_jb_ai.json")
+	expectedConfigFile, err := os.ReadFile("../../test/confighandler/minified_config_after_delete_jb_ai.json")
 	if err != nil {
 		t.Fatalf("Ошибка чтения временного файла: %v", err)
 	}
 	expectedContent := string(expectedConfigFile)
-	expectedContent = strings.Trim(expectedContent, " ")
-	expectedContent = strings.Trim(expectedContent, "\n")
-	actualContent := string(tmpFileContent)
+	var compactedActualJSON bytes.Buffer
+	err = json.Compact(&compactedActualJSON, tmpFileContent)
+	if err != nil {
+		t.Fatalf("Ошибка минификации JSON: %v", err)
+	}
+	actualContent := compactedActualJSON.String()
 	if actualContent != expectedContent {
 		t.Fatalf(
 			"Содержимое не соответствует ожидаемому. Ожидали:\n\"%s\"\nПолучили:\n\"%s\"",

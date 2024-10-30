@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/kontsevoye/xkeen-control/confighandler"
-	"github.com/kontsevoye/xkeen-control/xkeenipc"
+	"github.com/kontsevoye/xkeen-control/internal/confighandler"
+	"github.com/kontsevoye/xkeen-control/internal/executor"
+	"github.com/kontsevoye/xkeen-control/internal/xkeenipc"
 	"go.uber.org/zap"
 	"gopkg.in/telebot.v3"
 	telebotMiddleware "gopkg.in/telebot.v3/middleware"
@@ -135,6 +136,8 @@ func main() {
 	}()
 	appConfig := newAppConfig(logger)
 
+	ipc := xkeenipc.New(executor.NewExecExecutor())
+
 	bot, err := telebot.NewBot(telebot.Settings{
 		Token:  appConfig.TelegramBotToken,
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
@@ -197,7 +200,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		err = xkeenipc.Restart()
+		err = ipc.Restart()
 		if err != nil {
 			return c.Send(fmt.Sprintf("Ошибка перезапуска xkeen: %v", err))
 		}
@@ -406,7 +409,7 @@ func main() {
 				fmt.Sprintf("✅ `%s`\n🔄 Перезапускаю xkeen...", escapeTgMarkdownSpecialCharacters(actionPayload)),
 				telebot.ModeMarkdownV2,
 			)
-			err = xkeenipc.Restart()
+			err = ipc.Restart()
 			if err != nil {
 				_, err = c.Bot().Edit(
 					c.Message(),
@@ -443,7 +446,7 @@ func main() {
 				fmt.Sprintf("⛔ `%s`\n🔄 Перезапускаю xkeen...", escapeTgMarkdownSpecialCharacters(actionPayload)),
 				telebot.ModeMarkdownV2,
 			)
-			err = xkeenipc.Restart()
+			err = ipc.Restart()
 			if err != nil {
 				_, err = c.Bot().Edit(
 					c.Message(),
