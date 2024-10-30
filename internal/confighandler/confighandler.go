@@ -11,19 +11,12 @@ import (
 	"time"
 )
 
-func NewFileConfigHandler(enableBackups bool) *FileConfigHandler {
-	return &FileConfigHandler{enableBackups}
+func New(filename string, enableBackups bool) *ConfigHandler {
+	return &ConfigHandler{filename, enableBackups}
 }
 
-type ConfigHandler interface {
-	GetDomains(filename string) ([]string, error)
-	AddDomain(filename string, domain string) error
-	DeleteDomain(filename string, domain string) error
-	ListBackupFiles(filename string) ([]string, error)
-	RestoreBackup(filename, backupFileName string) error
-}
-
-type FileConfigHandler struct {
+type ConfigHandler struct {
+	filename      string
 	enableBackups bool
 }
 
@@ -57,7 +50,7 @@ func (r *rule) hasDomain(domain string) bool {
 	return false
 }
 
-func (ch *FileConfigHandler) standardizeJSON(input []byte) ([]byte, error) {
+func (ch *ConfigHandler) standardizeJSON(input []byte) ([]byte, error) {
 	ast, err := hujson.Parse(input)
 	if err != nil {
 		return input, err
@@ -66,8 +59,8 @@ func (ch *FileConfigHandler) standardizeJSON(input []byte) ([]byte, error) {
 	return ast.Pack(), nil
 }
 
-func (ch *FileConfigHandler) loadConfig(filename string) (*xrayRoutingConfig, error) {
-	data, err := os.ReadFile(filename)
+func (ch *ConfigHandler) loadConfig() (*xrayRoutingConfig, error) {
+	data, err := os.ReadFile(ch.filename)
 	if err != nil {
 		return nil, err
 	}
@@ -85,11 +78,11 @@ func (ch *FileConfigHandler) loadConfig(filename string) (*xrayRoutingConfig, er
 	return &c, nil
 }
 
-func (ch *FileConfigHandler) createBackupFile(filename string) error {
+func (ch *ConfigHandler) createBackupFile() error {
 	if !ch.enableBackups {
 		return nil
 	}
-	file, err := os.Open(filename)
+	file, err := os.Open(ch.filename)
 	if err != nil {
 		return fmt.Errorf("ошибка открытия исходного файла: %w", err)
 	}
@@ -99,7 +92,7 @@ func (ch *FileConfigHandler) createBackupFile(filename string) error {
 	if err != nil {
 		return fmt.Errorf("ошибка генерации uuid: %w", err)
 	}
-	backupFile, err := os.Create(fmt.Sprintf("%s_%d_%s.bak", filename, time.Now().Unix(), id.String()))
+	backupFile, err := os.Create(fmt.Sprintf("%s_%d_%s.bak", ch.filename, time.Now().Unix(), id.String()))
 	if err != nil {
 		return fmt.Errorf("ошибка создания файла назначения: %w", err)
 	}
@@ -118,18 +111,18 @@ func (ch *FileConfigHandler) createBackupFile(filename string) error {
 	return nil
 }
 
-func (ch *FileConfigHandler) saveConfig(filename string, config *xrayRoutingConfig) error {
+func (ch *ConfigHandler) saveConfig(config *xrayRoutingConfig) error {
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	err = ch.createBackupFile(filename)
+	err = ch.createBackupFile()
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(filename, data, 0644)
+	err = os.WriteFile(ch.filename, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -137,8 +130,8 @@ func (ch *FileConfigHandler) saveConfig(filename string, config *xrayRoutingConf
 	return nil
 }
 
-func (ch *FileConfigHandler) GetDomains(filename string) ([]string, error) {
-	c, err := ch.loadConfig(filename)
+func (ch *ConfigHandler) GetDomains() ([]string, error) {
+	c, err := ch.loadConfig()
 	if err != nil {
 		return []string{}, err
 	}
@@ -152,8 +145,8 @@ func (ch *FileConfigHandler) GetDomains(filename string) ([]string, error) {
 	return []string{}, nil
 }
 
-func (ch *FileConfigHandler) AddDomain(filename string, domain string) error {
-	c, err := ch.loadConfig(filename)
+func (ch *ConfigHandler) AddDomain(domain string) error {
+	c, err := ch.loadConfig()
 	if err != nil {
 		return err
 	}
@@ -163,7 +156,7 @@ func (ch *FileConfigHandler) AddDomain(filename string, domain string) error {
 				return fmt.Errorf("домен %s уже существует", domain)
 			}
 			c.Routing.Rules[i].Domains = append(rule.Domains, domain)
-			err = ch.saveConfig(filename, c)
+			err = ch.saveConfig(c)
 			return err
 		}
 	}
@@ -171,8 +164,8 @@ func (ch *FileConfigHandler) AddDomain(filename string, domain string) error {
 	return nil
 }
 
-func (ch *FileConfigHandler) DeleteDomain(filename string, domain string) error {
-	c, err := ch.loadConfig(filename)
+func (ch *ConfigHandler) DeleteDomain(domain string) error {
+	c, err := ch.loadConfig()
 	if err != nil {
 		return err
 	}
@@ -181,7 +174,7 @@ func (ch *FileConfigHandler) DeleteDomain(filename string, domain string) error 
 			for j, d := range rule.Domains {
 				if d == domain {
 					c.Routing.Rules[i].Domains = append(rule.Domains[:j], rule.Domains[j+1:]...)
-					err = ch.saveConfig(filename, c)
+					err = ch.saveConfig(c)
 					return err
 				}
 			}
@@ -191,8 +184,8 @@ func (ch *FileConfigHandler) DeleteDomain(filename string, domain string) error 
 	return fmt.Errorf("домен %s не обнаружен и не был удален", domain)
 }
 
-func (ch *FileConfigHandler) ListBackupFiles(filename string) ([]string, error) {
-	backupFiles, err := filepath.Glob(fmt.Sprintf("%s_*.bak", filename))
+func (ch *ConfigHandler) ListBackupFiles() ([]string, error) {
+	backupFiles, err := filepath.Glob(fmt.Sprintf("%s_*.bak", ch.filename))
 	if err != nil {
 		return []string{}, err
 	}
@@ -200,8 +193,8 @@ func (ch *FileConfigHandler) ListBackupFiles(filename string) ([]string, error) 
 	return backupFiles, nil
 }
 
-func (ch *FileConfigHandler) RestoreBackup(filename, backupFileName string) error {
-	backupFiles, err := ch.ListBackupFiles(filename)
+func (ch *ConfigHandler) RestoreBackup(backupFileName string) error {
+	backupFiles, err := ch.ListBackupFiles()
 	if err != nil {
 		return err
 	}
@@ -219,16 +212,16 @@ func (ch *FileConfigHandler) RestoreBackup(filename, backupFileName string) erro
 	if err != nil {
 		return fmt.Errorf("не удалось прочитать файл для восстановления \"%s\": %w", backupFileName, err)
 	}
-	err = ch.createBackupFile(filename)
+	err = ch.createBackupFile()
 	if err != nil {
 		return fmt.Errorf("не удалось создать бэкап текущей конфигурации: %w", err)
 	}
-	err = os.WriteFile(filename, backupFile, 0644)
+	err = os.WriteFile(ch.filename, backupFile, 0644)
 	if err != nil {
 		return fmt.Errorf(
 			"не удалось записать файл для восстановления \"%s\" в файл \"%s\": %w",
 			backupFileName,
-			filename,
+			ch.filename,
 			err,
 		)
 	}

@@ -38,7 +38,7 @@ func TestGetDomains(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	domains, err := NewFileConfigHandler(false).GetDomains(tmpFile.Name())
+	domains, err := New(tmpFile.Name(), false).GetDomains()
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
@@ -62,13 +62,13 @@ func TestAddDomain(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	newDomain := "newdomain.com"
-	ch := NewFileConfigHandler(false)
-	err = ch.AddDomain(tmpFile.Name(), newDomain)
+	ch := New(tmpFile.Name(), false)
+	err = ch.AddDomain(newDomain)
 	if err != nil {
 		t.Fatalf("Ошибка при добавлении домена: %v", err)
 	}
 
-	domains, err := ch.GetDomains(tmpFile.Name())
+	domains, err := ch.GetDomains()
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestAddExistingDomain(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	newDomain := "ext:geosite_v2fly.dat:jetbrains"
-	err = NewFileConfigHandler(false).AddDomain(tmpFile.Name(), newDomain)
+	err = New(tmpFile.Name(), false).AddDomain(newDomain)
 	if err == nil {
 		t.Fatalf("Домен добавился без ошибки")
 	}
@@ -101,19 +101,19 @@ func TestDeleteDomain(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	ch := NewFileConfigHandler(false)
-	domainsBefore, err := ch.GetDomains(tmpFile.Name())
+	ch := New(tmpFile.Name(), false)
+	domainsBefore, err := ch.GetDomains()
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	err = ch.DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = ch.DeleteDomain(domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
 
-	domainsAfter, err := ch.GetDomains(tmpFile.Name())
+	domainsAfter, err := ch.GetDomains()
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestDeleteUnknownDomain(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	domainToDelete := "koka.kola"
-	err = NewFileConfigHandler(false).DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = New(tmpFile.Name(), false).DeleteDomain(domainToDelete)
 	if err == nil {
 		t.Fatalf("Домен удалился без ошибки")
 	}
@@ -152,7 +152,7 @@ func TestWriteDontBrokeConfig(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	err = NewFileConfigHandler(false).DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = New(tmpFile.Name(), false).DeleteDomain(domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
@@ -189,8 +189,8 @@ func TestListBackupFiles(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	ch := NewFileConfigHandler(true)
-	backupFilesBefore, err := ch.ListBackupFiles(tmpFile.Name())
+	ch := New(tmpFile.Name(), true)
+	backupFilesBefore, err := ch.ListBackupFiles()
 	if err != nil {
 		t.Fatalf("Ошибка получения бэкапов: %v", err)
 	}
@@ -199,12 +199,12 @@ func TestListBackupFiles(t *testing.T) {
 	}
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	err = ch.DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = ch.DeleteDomain(domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
 
-	backupFilesAfter, err := ch.ListBackupFiles(tmpFile.Name())
+	backupFilesAfter, err := ch.ListBackupFiles()
 	if err != nil {
 		t.Fatalf("Ошибка получения бэкапов: %v", err)
 	}
@@ -221,18 +221,18 @@ func TestRestoreBackup(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	ch := NewFileConfigHandler(true)
-	err = ch.DeleteDomain(tmpFile.Name(), domainToDelete)
+	ch := New(tmpFile.Name(), true)
+	err = ch.DeleteDomain(domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
 
-	backupFiles, err := ch.ListBackupFiles(tmpFile.Name())
+	backupFiles, err := ch.ListBackupFiles()
 	if err != nil {
 		t.Fatalf("Ошибка получения бэкапов: %v", err)
 	}
 	backupFileName := backupFiles[len(backupFiles)-1]
-	err = ch.RestoreBackup(tmpFile.Name(), backupFileName)
+	err = ch.RestoreBackup(backupFileName)
 	if err != nil {
 		t.Fatalf("Ошибка восстановления бэкапа: %v", err)
 	}
