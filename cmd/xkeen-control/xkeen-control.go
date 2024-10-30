@@ -1,7 +1,7 @@
 package main
 
 import (
-	"flag"
+	"github.com/kontsevoye/xkeen-control/internal/config"
 	"github.com/kontsevoye/xkeen-control/internal/confighandler"
 	"github.com/kontsevoye/xkeen-control/internal/executor"
 	"github.com/kontsevoye/xkeen-control/internal/telegrambotui"
@@ -13,42 +13,6 @@ import (
 	"syscall"
 )
 
-type appConfig struct {
-	ConfigFilePath   string
-	TelegramBotToken string
-	TelegramAdminId  int64
-	EnableBackups    bool
-	XkeenBinaryName  string
-}
-
-func newAppConfig(logger *zap.Logger) *appConfig {
-	configFilePath := flag.String("config", "", "Путь к файлу конфигурации")
-	telegramBotToken := flag.String("token", "", "Токен Telegram бота")
-	telegramAdminId := flag.Int64("admin", 0, "Telegram ID админа")
-	enableBackups := flag.Bool("enableBackups", true, "Включить бэкапы конфигов, опционально")
-	xkeenBinaryName := flag.String("xkeenBinaryName", "", "Имя пакета xkeen, опционально")
-
-	flag.Parse()
-	if *configFilePath == "" || *telegramBotToken == "" || *telegramAdminId == 0 {
-		logger.Fatal(
-			"missing required options config/token/admin",
-			zap.String("configFilePath", *configFilePath),
-			zap.String("telegramBotToken", *telegramBotToken),
-			zap.Int64("telegramAdminId", *telegramAdminId),
-		)
-	}
-
-	conf := &appConfig{
-		ConfigFilePath:   *configFilePath,
-		TelegramBotToken: *telegramBotToken,
-		TelegramAdminId:  *telegramAdminId,
-		EnableBackups:    *enableBackups,
-		XkeenBinaryName:  *xkeenBinaryName,
-	}
-
-	return conf
-}
-
 func main() {
 	logger, _ := zap.NewProduction()
 	defer func() {
@@ -57,7 +21,7 @@ func main() {
 			panic(err)
 		}
 	}()
-	conf := newAppConfig(logger)
+	conf := config.New(logger)
 
 	tui := telegrambotui.New(
 		conf.TelegramBotToken,

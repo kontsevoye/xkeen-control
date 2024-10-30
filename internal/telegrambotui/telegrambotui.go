@@ -1,12 +1,15 @@
 package telegrambotui
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/kontsevoye/xkeen-control/internal/confighandler"
 	"github.com/kontsevoye/xkeen-control/internal/xkeenipc"
 	"go.uber.org/zap"
 	"gopkg.in/telebot.v3"
 	telebotMiddleware "gopkg.in/telebot.v3/middleware"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -55,6 +58,55 @@ const (
 	v2flyCommunityPrefix inlineAction = "cp"
 	cutSubdomain         inlineAction = "cs"
 )
+
+type BotCommand struct {
+	Command     string `json:"command"`
+	Description string `json:"description"`
+}
+
+type SetMyCommandsRequest struct {
+	Commands []BotCommand `json:"commands"`
+}
+
+func (tui *TelegramBotUi) setMyCommands() error {
+	apiURL := "https://api.telegram.org/bot" + tui.telegramBotToken + "/setMyCommands"
+	commands := []BotCommand{
+		{Command: "list", Description: "Список проксируемых доменов"},
+		{Command: "add", Description: "Добавить домен в список проксируемых"},
+		{Command: "delete", Description: "Убрать домен из списка проксируемых"},
+		{Command: "restart", Description: "Перезапустить xkeen для применения конфига"},
+		{Command: "backups", Description: "Список бэкапов конфига"},
+		{Command: "restore", Description: "Восстановить конфига из бэкапа"},
+		{Command: "help", Description: "Помощь по префиксам xray"},
+	}
+	requestData := SetMyCommandsRequest{Commands: commands}
+	jsonData, err := json.Marshal(requestData)
+	if err != nil {
+		tui.logger.Fatal("setMyCommands json encoding error", zap.Error(err))
+		return err
+	}
+
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		tui.logger.Fatal("setMyCommands request create error", zap.Error(err))
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		tui.logger.Fatal("setMyCommands send request error", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		tui.logger.Fatal("setMyCommands statusCode not ok", zap.Int("statusCode", resp.StatusCode))
+		return err
+	}
+
+	return nil
+}
 
 func (tui *TelegramBotUi) loggerMiddleware() telebot.MiddlewareFunc {
 	return func(next telebot.HandlerFunc) telebot.HandlerFunc {
@@ -463,6 +515,10 @@ func (tui *TelegramBotUi) initialize() {
 }
 
 func (tui *TelegramBotUi) Start() {
+	err := tui.setMyCommands()
+	if err != nil {
+		tui.logger.Fatal("Не получилось задать список команд", zap.Error(err))
+	}
 	tui.telegramBot.Start()
 }
 
