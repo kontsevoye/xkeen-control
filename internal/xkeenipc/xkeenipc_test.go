@@ -29,7 +29,7 @@ func (e *mockExecutor) RunCommand(name string, arg ...string) error {
 }
 
 func TestRestartUnknownBinary(t *testing.T) {
-	e := New(&mockExecutor{knownName: "test", knownArgs: []string{}})
+	e := New(&mockExecutor{knownName: "test", knownArgs: []string{}}, "")
 	err := e.Restart()
 	if err == nil {
 		t.Fatalf("Перезапуск без ожидаемой ошибки")
@@ -40,7 +40,7 @@ func TestRestartUnknownBinary(t *testing.T) {
 }
 
 func TestRestartUnknownArg(t *testing.T) {
-	e := New(&mockExecutor{knownName: "xkeen", knownArgs: []string{}})
+	e := New(&mockExecutor{knownName: "xkeen", knownArgs: []string{}}, "")
 	err := e.Restart()
 	if err == nil {
 		t.Fatalf("Перезапуск без ожидаемой ошибки")
@@ -51,7 +51,7 @@ func TestRestartUnknownArg(t *testing.T) {
 }
 
 func TestRestartSuccess(t *testing.T) {
-	e := New(&mockExecutor{knownName: "xkeen", knownArgs: []string{"-restart"}})
+	e := New(&mockExecutor{knownName: "xkeen", knownArgs: []string{"-restart"}}, "")
 	err := e.Restart()
 	if err != nil {
 		t.Fatalf("Не ожидаемая ошибка: %v", err)
