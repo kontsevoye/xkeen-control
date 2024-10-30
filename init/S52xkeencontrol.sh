@@ -55,6 +55,7 @@ restart() {
 }
 
 update() {
+  echo "Устанавливаю coreutils-nohup curl jq lscpu"
   opkg update &>/dev/null
   opkg install coreutils-nohup curl jq lscpu &>/dev/null
 
@@ -131,15 +132,9 @@ update() {
   last_tag_name=$(curl -s https://api.github.com/repos/kontsevoye/xkeen-control/releases/latest | jq -r ".tag_name")
   echo "Найдена версия $last_tag_name"
 
-  installed_tag_name=$(cat /opt/etc/xkeen-control/config.json | jq -r ".installed_tag_name | select (.!=null)")
-  if [ -z "${installed_tag_name}" ]; then
-    tmpfile=$(mktemp)
-    cat /opt/etc/xkeen-control/config.json | jq -r ".installed_tag_name |= \"$last_tag_name\"" > $tmpfile
-    mv $tmpfile /opt/etc/xkeen-control/config.json
-  elif [[ "$installed_tag_name" == "$last_tag_name" ]]; then
-    echo "Установлена последняя версия"
-    exit 0
-  fi
+  tmpfile=$(mktemp)
+  cat /opt/etc/xkeen-control/config.json | jq -r ".installed_tag_name |= \"$last_tag_name\"" > $tmpfile
+  mv $tmpfile /opt/etc/xkeen-control/config.json
 
   curl -s -L -o /opt/sbin/xkeen-control "$(curl -s https://api.github.com/repos/kontsevoye/xkeen-control/releases/tags/$last_tag_name | jq -r ".assets[] | select(.name | contains (\"$architecture\")) | .browser_download_url")"
   if [ -f /opt/etc/init.d/S52xkeencontrol ]; then
