@@ -2,12 +2,9 @@
 # /opt/etc/init.d/S52xkeencontrol
 ### Начало информации о службе
 # Краткое описание: Запуск / Остановка xkeen-control
-# version="0.2"  # Версия скрипта
+# version="0.3"  # Версия скрипта
 ### Конец информации о службе
 
-# coreutils-nohup required (opkg install coreutils-nohup)
-
-# EDIT ME
 telegram_bot_token=""
 telegram_admin_id=""
 enable_backups="true"
@@ -121,23 +118,39 @@ update() {
 
   echo "Определяю архитектуру"
   info_cpu
+
+  echo "Читаю конфиг /opt/etc/xkeen-control/config.json"
+  mkdir -p /opt/etc/xkeen-control
+  if [ ! -f /opt/etc/xkeen-control/config.json ]; then
+    echo "Создаю пустой конфиг /opt/etc/xkeen-control/config.json"
+    echo "{}" > /opt/etc/xkeen-control/config.json
+  fi
+
   echo "Качаю бинарник и init.d конфиг для архитектуры $architecture"
 
-  curl -s -L -o /opt/sbin/xkeen-control "$(curl -s https://api.github.com/repos/kontsevoye/xkeen-control/releases/latest | jq -r ".assets[] | select(.name | contains (\"$architecture\")) | .browser_download_url")"
+  last_tag_name=$(curl -s https://api.github.com/repos/kontsevoye/xkeen-control/releases/latest | jq -r ".tag_name")
+  echo "Найдена версия $last_tag_name"
+
+  installed_tag_name=$(cat /opt/etc/xkeen-control/config.json | jq -r ".installed_tag_name | select (.!=null)")
+  if [ -z "${installed_tag_name}" ]; then
+    tmpfile=$(mktemp)
+    cat /opt/etc/xkeen-control/config.json | jq -r ".installed_tag_name |= \"$last_tag_name\"" > $tmpfile
+    mv $tmpfile /opt/etc/xkeen-control/config.json
+  elif [[ "$installed_tag_name" == "$last_tag_name" ]]; then
+    echo "Установлена последняя версия"
+    exit 0
+  fi
+
+  curl -s -L -o /opt/sbin/xkeen-control "$(curl -s https://api.github.com/repos/kontsevoye/xkeen-control/releases/tags/$last_tag_name | jq -r ".assets[] | select(.name | contains (\"$architecture\")) | .browser_download_url")"
   if [ -f /opt/etc/init.d/S52xkeencontrol ]; then
     echo "init.d файл сущестует, останавливаю"
     /opt/etc/init.d/S52xkeencontrol stop &>/dev/null
   fi
-  curl -s -L -o /opt/etc/init.d/S52xkeencontrol "https://raw.githubusercontent.com/kontsevoye/xkeen-control/refs/tags/$(curl -s https://api.github.com/repos/kontsevoye/xkeen-control/releases/latest | jq -r ".tag_name")/init/S52xkeencontrol.sh"
+  curl -s -L -o /opt/etc/init.d/S52xkeencontrol "https://raw.githubusercontent.com/kontsevoye/xkeen-control/refs/tags/$last_tag_name/init/S52xkeencontrol.sh"
 
   echo "Делаю файлы /opt/sbin/xkeen-control и /opt/etc/init.d/S52xkeencontrol исполняемыми"
   chmod +x /opt/sbin/xkeen-control
   chmod +x /opt/etc/init.d/S52xkeencontrol
-
-  mkdir -p /opt/etc/xkeen-control
-  if [ ! -f /opt/etc/xkeen-control/config.json ]; then
-    echo "{}" > /opt/etc/xkeen-control/config.json
-  fi
 
   tg_bot_token=$(cat /opt/etc/xkeen-control/config.json | jq -r ".tg_bot_token | select (.!=null)")
   if [ -z "${tg_bot_token}" ]; then
@@ -147,7 +160,6 @@ update() {
     cat /opt/etc/xkeen-control/config.json | jq -r ".tg_bot_token |= \"$tg_bot_token\"" > $tmpfile
     mv $tmpfile /opt/etc/xkeen-control/config.json
   fi
-  cat /opt/etc/xkeen-control/config.json
   tg_admin_id=$(cat /opt/etc/xkeen-control/config.json | jq -r ".tg_admin_id | select (.!=null)")
   if [ -z "${tg_admin_id}" ]; then
     echo "Введите Telegram admin ID (можно взять у https://t.me/userinfobot):"
@@ -156,7 +168,6 @@ update() {
     cat /opt/etc/xkeen-control/config.json | jq -r ".tg_admin_id |= \"$tg_admin_id\"" > $tmpfile
     mv $tmpfile /opt/etc/xkeen-control/config.json
   fi
-  cat /opt/etc/xkeen-control/config.json
 
   sed -i "s/telegram_bot_token=\".*\"/telegram_bot_token=\"$tg_bot_token\"/" /opt/etc/init.d/S52xkeencontrol
   sed -i "s/telegram_admin_id=\".*\"/telegram_admin_id=\"$tg_admin_id\"/" /opt/etc/init.d/S52xkeencontrol
