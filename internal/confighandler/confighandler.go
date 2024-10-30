@@ -11,6 +11,22 @@ import (
 	"time"
 )
 
+func NewFileConfigHandler(enableBackups bool) *FileConfigHandler {
+	return &FileConfigHandler{enableBackups}
+}
+
+type ConfigHandler interface {
+	GetDomains(filename string) ([]string, error)
+	AddDomain(filename string, domain string) error
+	DeleteDomain(filename string, domain string) error
+	ListBackupFiles(filename string) ([]string, error)
+	RestoreBackup(filename, backupFileName string) error
+}
+
+type FileConfigHandler struct {
+	enableBackups bool
+}
+
 type xrayRoutingConfig struct {
 	Routing struct {
 		Rules []rule `json:"rules"`
@@ -41,7 +57,7 @@ func (r *rule) hasDomain(domain string) bool {
 	return false
 }
 
-func standardizeJSON(input []byte) ([]byte, error) {
+func (ch *FileConfigHandler) standardizeJSON(input []byte) ([]byte, error) {
 	ast, err := hujson.Parse(input)
 	if err != nil {
 		return input, err
@@ -50,13 +66,13 @@ func standardizeJSON(input []byte) ([]byte, error) {
 	return ast.Pack(), nil
 }
 
-func loadConfig(filename string) (*xrayRoutingConfig, error) {
+func (ch *FileConfigHandler) loadConfig(filename string) (*xrayRoutingConfig, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	standardizedData, err := standardizeJSON(data)
+	standardizedData, err := ch.standardizeJSON(data)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +85,10 @@ func loadConfig(filename string) (*xrayRoutingConfig, error) {
 	return &c, nil
 }
 
-func createBackupFile(filename string) error {
+func (ch *FileConfigHandler) createBackupFile(filename string) error {
+	if !ch.enableBackups {
+		return nil
+	}
 	file, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("ошибка открытия исходного файла: %w", err)
@@ -99,13 +118,13 @@ func createBackupFile(filename string) error {
 	return nil
 }
 
-func saveConfig(filename string, config *xrayRoutingConfig) error {
+func (ch *FileConfigHandler) saveConfig(filename string, config *xrayRoutingConfig) error {
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	err = createBackupFile(filename)
+	err = ch.createBackupFile(filename)
 	if err != nil {
 		return err
 	}
@@ -118,8 +137,8 @@ func saveConfig(filename string, config *xrayRoutingConfig) error {
 	return nil
 }
 
-func GetDomains(filename string) ([]string, error) {
-	c, err := loadConfig(filename)
+func (ch *FileConfigHandler) GetDomains(filename string) ([]string, error) {
+	c, err := ch.loadConfig(filename)
 	if err != nil {
 		return []string{}, err
 	}
@@ -133,8 +152,8 @@ func GetDomains(filename string) ([]string, error) {
 	return []string{}, nil
 }
 
-func AddDomain(filename string, domain string) error {
-	c, err := loadConfig(filename)
+func (ch *FileConfigHandler) AddDomain(filename string, domain string) error {
+	c, err := ch.loadConfig(filename)
 	if err != nil {
 		return err
 	}
@@ -144,7 +163,7 @@ func AddDomain(filename string, domain string) error {
 				return fmt.Errorf("домен %s уже существует", domain)
 			}
 			c.Routing.Rules[i].Domains = append(rule.Domains, domain)
-			err = saveConfig(filename, c)
+			err = ch.saveConfig(filename, c)
 			return err
 		}
 	}
@@ -152,8 +171,8 @@ func AddDomain(filename string, domain string) error {
 	return nil
 }
 
-func DeleteDomain(filename string, domain string) error {
-	c, err := loadConfig(filename)
+func (ch *FileConfigHandler) DeleteDomain(filename string, domain string) error {
+	c, err := ch.loadConfig(filename)
 	if err != nil {
 		return err
 	}
@@ -162,7 +181,7 @@ func DeleteDomain(filename string, domain string) error {
 			for j, d := range rule.Domains {
 				if d == domain {
 					c.Routing.Rules[i].Domains = append(rule.Domains[:j], rule.Domains[j+1:]...)
-					err = saveConfig(filename, c)
+					err = ch.saveConfig(filename, c)
 					return err
 				}
 			}
@@ -172,7 +191,7 @@ func DeleteDomain(filename string, domain string) error {
 	return fmt.Errorf("домен %s не обнаружен и не был удален", domain)
 }
 
-func ListBackupFiles(filename string) ([]string, error) {
+func (ch *FileConfigHandler) ListBackupFiles(filename string) ([]string, error) {
 	backupFiles, err := filepath.Glob(fmt.Sprintf("%s_*.bak", filename))
 	if err != nil {
 		return []string{}, err
@@ -181,8 +200,8 @@ func ListBackupFiles(filename string) ([]string, error) {
 	return backupFiles, nil
 }
 
-func RestoreBackup(filename, backupFileName string) error {
-	backupFiles, err := ListBackupFiles(filename)
+func (ch *FileConfigHandler) RestoreBackup(filename, backupFileName string) error {
+	backupFiles, err := ch.ListBackupFiles(filename)
 	if err != nil {
 		return err
 	}
@@ -200,7 +219,7 @@ func RestoreBackup(filename, backupFileName string) error {
 	if err != nil {
 		return fmt.Errorf("не удалось прочитать файл для восстановления \"%s\": %w", backupFileName, err)
 	}
-	err = createBackupFile(filename)
+	err = ch.createBackupFile(filename)
 	if err != nil {
 		return fmt.Errorf("не удалось создать бэкап текущей конфигурации: %w", err)
 	}

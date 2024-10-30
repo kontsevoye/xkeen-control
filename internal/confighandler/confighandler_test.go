@@ -38,7 +38,7 @@ func TestGetDomains(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	domains, err := GetDomains(tmpFile.Name())
+	domains, err := NewFileConfigHandler(false).GetDomains(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
@@ -62,12 +62,13 @@ func TestAddDomain(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	newDomain := "newdomain.com"
-	err = AddDomain(tmpFile.Name(), newDomain)
+	ch := NewFileConfigHandler(false)
+	err = ch.AddDomain(tmpFile.Name(), newDomain)
 	if err != nil {
 		t.Fatalf("Ошибка при добавлении домена: %v", err)
 	}
 
-	domains, err := GetDomains(tmpFile.Name())
+	domains, err := ch.GetDomains(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
@@ -84,7 +85,7 @@ func TestAddExistingDomain(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	newDomain := "ext:geosite_v2fly.dat:jetbrains"
-	err = AddDomain(tmpFile.Name(), newDomain)
+	err = NewFileConfigHandler(false).AddDomain(tmpFile.Name(), newDomain)
 	if err == nil {
 		t.Fatalf("Домен добавился без ошибки")
 	}
@@ -100,18 +101,19 @@ func TestDeleteDomain(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	domainsBefore, err := GetDomains(tmpFile.Name())
+	ch := NewFileConfigHandler(false)
+	domainsBefore, err := ch.GetDomains(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	err = DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = ch.DeleteDomain(tmpFile.Name(), domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
 
-	domainsAfter, err := GetDomains(tmpFile.Name())
+	domainsAfter, err := ch.GetDomains(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Ошибка получения доменов: %v", err)
 	}
@@ -133,7 +135,7 @@ func TestDeleteUnknownDomain(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	domainToDelete := "koka.kola"
-	err = DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = NewFileConfigHandler(false).DeleteDomain(tmpFile.Name(), domainToDelete)
 	if err == nil {
 		t.Fatalf("Домен удалился без ошибки")
 	}
@@ -150,7 +152,7 @@ func TestWriteDontBrokeConfig(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	err = DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = NewFileConfigHandler(false).DeleteDomain(tmpFile.Name(), domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
@@ -187,7 +189,8 @@ func TestListBackupFiles(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	backupFilesBefore, err := ListBackupFiles(tmpFile.Name())
+	ch := NewFileConfigHandler(true)
+	backupFilesBefore, err := ch.ListBackupFiles(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Ошибка получения бэкапов: %v", err)
 	}
@@ -196,12 +199,12 @@ func TestListBackupFiles(t *testing.T) {
 	}
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	err = DeleteDomain(tmpFile.Name(), domainToDelete)
+	err = ch.DeleteDomain(tmpFile.Name(), domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
 
-	backupFilesAfter, err := ListBackupFiles(tmpFile.Name())
+	backupFilesAfter, err := ch.ListBackupFiles(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Ошибка получения бэкапов: %v", err)
 	}
@@ -218,17 +221,18 @@ func TestRestoreBackup(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	domainToDelete := "ext:geosite_v2fly.dat:jetbrains-ai"
-	err = DeleteDomain(tmpFile.Name(), domainToDelete)
+	ch := NewFileConfigHandler(true)
+	err = ch.DeleteDomain(tmpFile.Name(), domainToDelete)
 	if err != nil {
 		t.Fatalf("Ошибка удаления домена: %v", err)
 	}
 
-	backupFiles, err := ListBackupFiles(tmpFile.Name())
+	backupFiles, err := ch.ListBackupFiles(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Ошибка получения бэкапов: %v", err)
 	}
 	backupFileName := backupFiles[len(backupFiles)-1]
-	err = RestoreBackup(tmpFile.Name(), backupFileName)
+	err = ch.RestoreBackup(tmpFile.Name(), backupFileName)
 	if err != nil {
 		t.Fatalf("Ошибка восстановления бэкапа: %v", err)
 	}

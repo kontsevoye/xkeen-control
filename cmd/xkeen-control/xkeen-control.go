@@ -21,6 +21,7 @@ type appConfig struct {
 	ConfigFilePath   string
 	TelegramBotToken string
 	TelegramAdminId  int64
+	EnableBackups    bool
 }
 
 type inlineAction string
@@ -43,6 +44,7 @@ func newAppConfig(logger *zap.Logger) *appConfig {
 	configFilePath := flag.String("config", "", "Путь к файлу конфигурации")
 	telegramBotToken := flag.String("token", "", "Токен Telegram бота")
 	telegramAdminId := flag.Int64("admin", 0, "Telegram ID админа")
+	enableBackups := flag.Bool("enableBackups", true, "Включить бэкапы конфигов")
 
 	flag.Parse()
 	if *configFilePath == "" || *telegramBotToken == "" || *telegramAdminId == 0 {
@@ -58,6 +60,7 @@ func newAppConfig(logger *zap.Logger) *appConfig {
 		ConfigFilePath:   *configFilePath,
 		TelegramBotToken: *telegramBotToken,
 		TelegramAdminId:  *telegramAdminId,
+		EnableBackups:    *enableBackups,
 	}
 
 	return appConfig
@@ -137,6 +140,7 @@ func main() {
 	appConfig := newAppConfig(logger)
 
 	ipc := xkeenipc.New(executor.NewExecExecutor())
+	ch := confighandler.NewFileConfigHandler(appConfig.EnableBackups)
 
 	bot, err := telebot.NewBot(telebot.Settings{
 		Token:  appConfig.TelegramBotToken,
@@ -150,7 +154,7 @@ func main() {
 	bot.Use(telebotMiddleware.Whitelist(appConfig.TelegramAdminId))
 
 	bot.Handle("/list", func(c telebot.Context) error {
-		domains, err := confighandler.GetDomains(appConfig.ConfigFilePath)
+		domains, err := ch.GetDomains(appConfig.ConfigFilePath)
 		if err != nil {
 			return c.Send(fmt.Sprintf("Ошибка чтения доменов: %v", err))
 		}
@@ -173,7 +177,7 @@ func main() {
 			return c.Send("Пожалуйста, укажите домен для добавления.")
 		}
 
-		err = confighandler.AddDomain(appConfig.ConfigFilePath, domain)
+		err = ch.AddDomain(appConfig.ConfigFilePath, domain)
 		if err != nil {
 			return c.Send(fmt.Sprintf("Ошибка сохранения домена: %v", err))
 		}
@@ -187,7 +191,7 @@ func main() {
 			return c.Send("Пожалуйста, укажите домен для удаления.")
 		}
 
-		err = confighandler.DeleteDomain(appConfig.ConfigFilePath, domain)
+		err = ch.DeleteDomain(appConfig.ConfigFilePath, domain)
 		if err != nil {
 			return c.Send(fmt.Sprintf("Ошибка удаления домена: %v", err))
 		}
@@ -209,7 +213,7 @@ func main() {
 	})
 
 	bot.Handle("/backups", func(c telebot.Context) error {
-		backupFiles, err := confighandler.ListBackupFiles(appConfig.ConfigFilePath)
+		backupFiles, err := ch.ListBackupFiles(appConfig.ConfigFilePath)
 		if err != nil {
 			return c.Send(fmt.Sprintf("Ошибка получения списка бэкапов: %v", err))
 		}
@@ -226,7 +230,7 @@ func main() {
 			return c.Send("Пожалуйста, укажите файл для восстановления.")
 		}
 
-		err = confighandler.RestoreBackup(appConfig.ConfigFilePath, backupFileName)
+		err = ch.RestoreBackup(appConfig.ConfigFilePath, backupFileName)
 		if err != nil {
 			return c.Send(fmt.Sprintf("Ошибка восстановления из бэкапа: %v", err))
 		}
@@ -353,7 +357,7 @@ func main() {
 		action = inlineAction(dataSplit[0])
 		actionPayload := dataSplit[1]
 		if action == add {
-			err = confighandler.AddDomain(appConfig.ConfigFilePath, actionPayload)
+			err = ch.AddDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
 				_, err = c.Bot().Edit(
 					c.Message(),
@@ -372,7 +376,7 @@ func main() {
 				telebot.ModeMarkdownV2,
 			)
 		} else if action == remove {
-			err = confighandler.DeleteDomain(appConfig.ConfigFilePath, actionPayload)
+			err = ch.DeleteDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
 				_, err = c.Bot().Edit(
 					c.Message(),
@@ -391,7 +395,7 @@ func main() {
 				telebot.ModeMarkdownV2,
 			)
 		} else if action == addReload {
-			err = confighandler.AddDomain(appConfig.ConfigFilePath, actionPayload)
+			err = ch.AddDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
 				_, err = c.Bot().Edit(
 					c.Message(),
@@ -428,7 +432,7 @@ func main() {
 				telebot.ModeMarkdownV2,
 			)
 		} else if action == removeReload {
-			err = confighandler.DeleteDomain(appConfig.ConfigFilePath, actionPayload)
+			err = ch.DeleteDomain(appConfig.ConfigFilePath, actionPayload)
 			if err != nil {
 				_, err = c.Bot().Edit(
 					c.Message(),
